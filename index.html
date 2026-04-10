@@ -1,0 +1,262 @@
+
+<style>
+  .panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 12px; }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  label { font-size: 13px; color: var(--color-text-secondary); min-width: 80px; }
+  .knot-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 4px 10px; font-size: 13px; font-weight: 500; }
+  .knot-tag .cont { font-size: 11px; color: var(--color-text-secondary); font-weight: 400; }
+  .mult-ctrl { display: inline-flex; align-items: center; gap: 4px; }
+  .mult-ctrl button { width: 22px; height: 22px; border: 0.5px solid var(--color-border-secondary); border-radius: 4px; background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .mult-ctrl button:hover { background: var(--color-background-secondary); }
+  .mult-val { min-width: 18px; text-align: center; font-size: 13px; font-weight: 500; }
+  .kv-display { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 6px 10px; margin-top: 8px; }
+  select, input[type=number] { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-primary); font-size: 13px; padding: 5px 8px; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
+  .legend-swatch { width: 24px; height: 3px; border-radius: 2px; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; }
+  .cont-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .cont-table th { text-align: left; padding: 4px 8px; color: var(--color-text-secondary); font-weight: 500; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .cont-table td { padding: 4px 8px; color: var(--color-text-primary); border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
+  .badge-c { background: #E1F5EE; color: #0F6E56; }
+  .badge-disc { background: #FAECE7; color: #993C1D; }
+  @media (prefers-color-scheme: dark) {
+    .badge-c { background: #085041; color: #9FE1CB; }
+    .badge-disc { background: #4A1B0C; color: #F5C4B3; }
+  }
+</style>
+
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">IGA B-Spline basis function visualizer: plots N_{i,p}(xi) for a given knot vector with continuity annotations</h2>
+
+<div style="padding: 1rem 0 0.5rem;">
+
+<div class="panel">
+  <div class="row">
+    <label>Degree p</label>
+    <select id="deg">
+      <option value="1">p = 1</option>
+      <option value="2">p = 2</option>
+      <option value="3" selected>p = 3</option>
+      <option value="4">p = 4</option>
+      <option value="5">p = 5</option>
+    </select>
+    <label style="margin-left:16px;">Interior knots</label>
+    <select id="nInt">
+      <option value="0">0</option>
+      <option value="1">1</option>
+      <option value="2" selected>2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+  </div>
+
+  <div id="multControls" class="row" style="flex-wrap: wrap; gap: 14px; margin-top: 6px;"></div>
+
+  <div class="kv-display" id="kvDisplay"></div>
+</div>
+
+<div class="panel">
+  <div class="legend-row" id="legend"></div>
+  <div style="position: relative; width: 100%; height: 280px;">
+    <canvas id="basisChart" role="img" aria-label="B-spline basis functions plot"></canvas>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="section-title">Continuity at interior knots</div>
+  <table class="cont-table">
+    <thead><tr><th>Knot ξ</th><th>Multiplicity k</th><th>Continuity</th><th>Derivatives matched</th></tr></thead>
+    <tbody id="contBody"></tbody>
+  </table>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const COLORS = ['#378ADD','#1D9E75','#D85A30','#BA7517','#993556','#534AB7','#639922','#E24B4A','#0F6E56','#633806'];
+
+let chart = null;
+
+function buildKnotVector(p, interiorKnots) {
+  const kv = [];
+  for (let i = 0; i <= p; i++) kv.push(0);
+  for (const {xi, mult} of interiorKnots) {
+    for (let m = 0; m < mult; m++) kv.push(xi);
+  }
+  for (let i = 0; i <= p; i++) kv.push(1);
+  return kv;
+}
+
+function bsplineBasis(i, p, t, kv) {
+  if (p === 0) {
+    const last = (i === kv.length - 2);
+    return (t >= kv[i] && (last ? t <= kv[i+1] : t < kv[i+1])) ? 1 : 0;
+  }
+  let left = 0, right = 0;
+  const d1 = kv[i+p] - kv[i];
+  const d2 = kv[i+p+1] - kv[i+1];
+  if (d1 > 1e-14) left = (t - kv[i]) / d1 * bsplineBasis(i, p-1, t, kv);
+  if (d2 > 1e-14) right = (kv[i+p+1] - t) / d2 * bsplineBasis(i+1, p-1, t, kv);
+  return left + right;
+}
+
+function getState() {
+  const p = parseInt(document.getElementById('deg').value);
+  const nInt = parseInt(document.getElementById('nInt').value);
+  const interiorKnots = [];
+  for (let j = 0; j < nInt; j++) {
+    const xi = (j + 1) / (nInt + 1);
+    const multEl = document.getElementById('mult_' + j);
+    const mult = multEl ? parseInt(multEl.textContent) : 1;
+    interiorKnots.push({ xi: parseFloat(xi.toFixed(4)), mult });
+  }
+  return { p, nInt, interiorKnots };
+}
+
+function renderMultControls() {
+  const { p, nInt, interiorKnots } = getState();
+  const container = document.getElementById('multControls');
+  const prev = {};
+  for (let j = 0; j < nInt; j++) {
+    const el = document.getElementById('mult_' + j);
+    if (el) prev[j] = parseInt(el.textContent);
+  }
+  container.innerHTML = '';
+  if (nInt === 0) { update(); return; }
+  const lbl = document.createElement('span');
+  lbl.style.cssText = 'font-size:13px;color:var(--color-text-secondary);width:100%;flex-basis:100%;';
+  lbl.textContent = 'Interior knot multiplicities';
+  container.appendChild(lbl);
+  for (let j = 0; j < nInt; j++) {
+    const xi = ((j + 1) / (nInt + 1)).toFixed(2);
+    const curMult = prev[j] || 1;
+    const wrap = document.createElement('div');
+    wrap.className = 'knot-tag';
+    wrap.innerHTML = `<span>ξ = ${xi}</span>
+      <div class="mult-ctrl">
+        <button id="dec_${j}">−</button>
+        <span class="mult-val" id="mult_${j}">${Math.min(curMult, p)}</span>
+        <button id="inc_${j}">+</button>
+      </div>
+      <span class="cont" id="cont_tag_${j}"></span>`;
+    container.appendChild(wrap);
+    document.getElementById('dec_' + j).onclick = () => {
+      const v = parseInt(document.getElementById('mult_' + j).textContent);
+      if (v > 1) { document.getElementById('mult_' + j).textContent = v - 1; update(); }
+    };
+    document.getElementById('inc_' + j).onclick = () => {
+      const v = parseInt(document.getElementById('mult_' + j).textContent);
+      if (v < p) { document.getElementById('mult_' + j).textContent = v + 1; update(); }
+    };
+  }
+  update();
+}
+
+function update() {
+  const { p, nInt, interiorKnots } = getState();
+  const kv = buildKnotVector(p, interiorKnots);
+  const n = kv.length - p - 2;
+
+  document.getElementById('kvDisplay').textContent = 'Ξ = [ ' + kv.map(v => v.toFixed(v % 1 === 0 ? 0 : 3)).join('  ') + ' ]';
+
+  const N = 400;
+  const ts = Array.from({length: N+1}, (_, i) => i / N);
+
+  const datasets = [];
+  for (let i = 0; i <= n; i++) {
+    const vals = ts.map(t => bsplineBasis(i, p, t, kv));
+    datasets.push({
+      label: `N_{${i},${p}}`,
+      data: ts.map((t, idx) => ({ x: t, y: vals[idx] })),
+      borderColor: COLORS[i % COLORS.length],
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: 0,
+      tension: 0,
+    });
+  }
+
+  const legend = document.getElementById('legend');
+  legend.innerHTML = '';
+  datasets.forEach((d, i) => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    item.innerHTML = `<span class="legend-swatch" style="background:${COLORS[i % COLORS.length]}"></span><span>N<sub>${i},${p}</sub></span>`;
+    legend.appendChild(item);
+  });
+
+  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
+  const tickColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)';
+
+  const knotLines = interiorKnots.map(({xi}) => ({
+    type: 'line', xMin: xi, xMax: xi, borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)',
+    borderWidth: 1, borderDash: [4, 3], label: { display: false }
+  }));
+
+  if (chart) chart.destroy();
+  chart = new Chart(document.getElementById('basisChart'), {
+    type: 'scatter',
+    data: { datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      animation: false,
+      plugins: {
+        legend: { display: false },
+        annotation: { annotations: knotLines },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          type: 'linear', min: 0, max: 1,
+          title: { display: true, text: 'ξ', color: tickColor, font: { size: 13 } },
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 11 }, maxTicksLimit: 11 }
+        },
+        y: {
+          min: -0.02, max: 1.05,
+          title: { display: true, text: 'N_{i,p}(ξ)', color: tickColor, font: { size: 13 } },
+          grid: { color: gridColor },
+          ticks: { color: tickColor, font: { size: 11 } }
+        }
+      },
+      showLine: true,
+    }
+  });
+
+  const tbody = document.getElementById('contBody');
+  tbody.innerHTML = '';
+  if (interiorKnots.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--color-text-secondary);padding:8px;">No interior knots</td></tr>';
+  } else {
+    for (let j = 0; j < interiorKnots.length; j++) {
+      const { xi, mult } = interiorKnots[j];
+      const cont = p - mult;
+      const xiStr = xi.toFixed(3);
+      const contStr = cont >= 0 ? `C<sup>${cont}</sup>` : 'C<sup>−1</sup> (discontinuous)';
+      const badgeCls = cont >= 0 ? 'badge-c' : 'badge-disc';
+      const badgeTxt = cont >= 0 ? `C${cont}` : 'disc.';
+      const derivStr = cont >= 0 ? (cont === 0 ? 'function value only' : `0 through ${cont - 1}${cont >= 1 ? 'st' : ''} derivative`) : 'none';
+      const derivLabel = cont < 0 ? 'none' : cont === 0 ? 'value only' : `up to ${cont === 1 ? '1st' : cont === 2 ? '2nd' : cont === 3 ? '3rd' : cont+'th'} derivative`;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>ξ = ${xiStr}</td><td>${mult}</td><td>${contStr} &nbsp;<span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${derivLabel}</td>`;
+      tbody.appendChild(tr);
+
+      const ctag = document.getElementById('cont_tag_' + j);
+      if (ctag) ctag.textContent = `C${cont >= 0 ? cont : '−1'}`;
+    }
+  }
+}
+
+document.getElementById('deg').onchange = renderMultControls;
+document.getElementById('nInt').onchange = renderMultControls;
+
+renderMultControls();
+</script>

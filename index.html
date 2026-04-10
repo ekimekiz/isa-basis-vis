@@ -1,181 +1,402 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IGA Basis Function Visualizer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
-  .panel { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.25rem; margin-bottom: 12px; }
-  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-  label { font-size: 13px; color: var(--color-text-secondary); min-width: 80px; }
-  .knot-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 4px 10px; font-size: 13px; font-weight: 500; }
-  .knot-tag .cont { font-size: 11px; color: var(--color-text-secondary); font-weight: 400; }
-  .mult-ctrl { display: inline-flex; align-items: center; gap: 4px; }
-  .mult-ctrl button { width: 22px; height: 22px; border: 0.5px solid var(--color-border-secondary); border-radius: 4px; background: var(--color-background-primary); color: var(--color-text-primary); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
-  .mult-ctrl button:hover { background: var(--color-background-secondary); }
-  .mult-val { min-width: 18px; text-align: center; font-size: 13px; font-weight: 500; }
-  .kv-display { font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 6px 10px; margin-top: 8px; }
-  select, input[type=number] { background: var(--color-background-primary); border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-primary); font-size: 13px; padding: 5px 8px; }
-  .legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--color-text-secondary); }
-  .legend-swatch { width: 24px; height: 3px; border-radius: 2px; }
-  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); margin-bottom: 8px; }
-  .cont-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  .cont-table th { text-align: left; padding: 4px 8px; color: var(--color-text-secondary); font-weight: 500; border-bottom: 0.5px solid var(--color-border-tertiary); }
-  .cont-table td { padding: 4px 8px; color: var(--color-text-primary); border-bottom: 0.5px solid var(--color-border-tertiary); }
-  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
-  .badge-c { background: #E1F5EE; color: #0F6E56; }
-  .badge-disc { background: #FAECE7; color: #993C1D; }
-  @media (prefers-color-scheme: dark) {
-    .badge-c { background: #085041; color: #9FE1CB; }
-    .badge-disc { background: #4A1B0C; color: #F5C4B3; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f8f7f4;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.10);
+    --border-mid: rgba(0,0,0,0.18);
+    --text: #1a1a18;
+    --text-muted: #6b6b67;
+    --accent: #185FA5;
+    --accent-light: #E6F1FB;
+    --teal: #0F6E56;
+    --teal-light: #E1F5EE;
+    --coral: #993C1D;
+    --coral-light: #FAECE7;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+  }
+
+  .page-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+
+  header p {
+    margin-top: 5px;
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  header a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  header a:hover { text-decoration: underline; }
+
+  .card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 14px;
+  }
+
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+
+  .controls-row label {
+    font-size: 13px;
+    color: var(--text-muted);
+    min-width: 90px;
+  }
+
+  select {
+    appearance: none;
+    background: var(--bg);
+    border: 0.5px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 13px;
+    padding: 6px 28px 6px 10px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6b67' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+  }
+
+  select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  .mult-section-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .mult-row { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .knot-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg);
+    border: 0.5px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .knot-tag .cont-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 400;
+    min-width: 24px;
+  }
+
+  .mult-ctrl { display: inline-flex; align-items: center; gap: 3px; }
+
+  .mult-ctrl button {
+    width: 22px; height: 22px;
+    border: 0.5px solid var(--border-mid);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--text);
+    font-size: 15px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+    transition: background 0.1s;
+  }
+
+  .mult-ctrl button:hover { background: var(--accent-light); }
+
+  .mult-val {
+    min-width: 18px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .kv-display {
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-top: 12px;
+    border: 0.5px solid var(--border);
+    word-break: break-all;
+  }
+
+  .legend-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .legend-swatch { width: 22px; height: 3px; border-radius: 2px; }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 300px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    text-align: left;
+    padding: 6px 10px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 12px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  tbody td {
+    padding: 7px 10px;
+    border-bottom: 0.5px solid var(--border);
+    color: var(--text);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-left: 6px;
+  }
+
+  .badge-c { background: var(--teal-light); color: var(--teal); }
+  .badge-disc { background: var(--coral-light); color: var(--coral); }
+
+  footer {
+    margin-top: 2rem;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
   }
 </style>
+</head>
+<body>
+<div class="page-wrap">
 
-<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;">IGA B-Spline basis function visualizer: plots N_{i,p}(xi) for a given knot vector with continuity annotations</h2>
+  <header>
+    <h1>IGA B-Spline Basis Function Visualizer</h1>
+    <p>Plots N<sub>i,p</sub>(ξ) for a given knot vector via Cox&ndash;de Boor recursion. Adjust degree and interior knot multiplicities to explore continuity.</p>
+  </header>
 
-<div style="padding: 1rem 0 0.5rem;">
+  <div class="card">
+    <div class="card-title">Knot vector parameters</div>
+    <div class="controls-row">
+      <label>Degree p</label>
+      <select id="deg">
+        <option value="1">p = 1</option>
+        <option value="2">p = 2</option>
+        <option value="3" selected>p = 3</option>
+        <option value="4">p = 4</option>
+        <option value="5">p = 5</option>
+      </select>
+      <label style="margin-left:12px;">Interior knots</label>
+      <select id="nInt">
+        <option value="0">0</option>
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+      </select>
+    </div>
 
-<div class="panel">
-  <div class="row">
-    <label>Degree p</label>
-    <select id="deg">
-      <option value="1">p = 1</option>
-      <option value="2">p = 2</option>
-      <option value="3" selected>p = 3</option>
-      <option value="4">p = 4</option>
-      <option value="5">p = 5</option>
-    </select>
-    <label style="margin-left:16px;">Interior knots</label>
-    <select id="nInt">
-      <option value="0">0</option>
-      <option value="1">1</option>
-      <option value="2" selected>2</option>
-      <option value="3">3</option>
-      <option value="4">4</option>
-      <option value="5">5</option>
-    </select>
+    <div id="multSection" style="margin-top:4px;">
+      <div class="mult-section-label">Interior knot multiplicities</div>
+      <div class="mult-row" id="multControls"></div>
+    </div>
+
+    <div class="kv-display" id="kvDisplay"></div>
   </div>
 
-  <div id="multControls" class="row" style="flex-wrap: wrap; gap: 14px; margin-top: 6px;"></div>
-
-  <div class="kv-display" id="kvDisplay"></div>
-</div>
-
-<div class="panel">
-  <div class="legend-row" id="legend"></div>
-  <div style="position: relative; width: 100%; height: 280px;">
-    <canvas id="basisChart" role="img" aria-label="B-spline basis functions plot"></canvas>
+  <div class="card">
+    <div class="card-title">Basis functions</div>
+    <div class="legend-row" id="legend"></div>
+    <div class="chart-wrap">
+      <canvas id="basisChart" role="img" aria-label="B-spline basis functions"></canvas>
+    </div>
   </div>
+
+  <div class="card">
+    <div class="card-title">Continuity at interior knots</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Knot ξ</th>
+          <th>Multiplicity k</th>
+          <th>Continuity</th>
+          <th>Derivatives matched</th>
+        </tr>
+      </thead>
+      <tbody id="contBody"></tbody>
+    </table>
+  </div>
+
+  <footer>Built with Chart.js &middot; Cox&ndash;de Boor recursion</footer>
+
 </div>
 
-<div class="panel">
-  <div class="section-title">Continuity at interior knots</div>
-  <table class="cont-table">
-    <thead><tr><th>Knot ξ</th><th>Multiplicity k</th><th>Continuity</th><th>Derivatives matched</th></tr></thead>
-    <tbody id="contBody"></tbody>
-  </table>
-</div>
-
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script>
-const COLORS = ['#378ADD','#1D9E75','#D85A30','#BA7517','#993556','#534AB7','#639922','#E24B4A','#0F6E56','#633806'];
+const COLORS = ['#378ADD','#1D9E75','#D85A30','#BA7517','#993356','#534AB7','#639922','#E24B4A','#0F6E56','#633806'];
 
 let chart = null;
 
-function buildKnotVector(p, interiorKnots) {
+function buildKV(p, iks) {
   const kv = [];
   for (let i = 0; i <= p; i++) kv.push(0);
-  for (const {xi, mult} of interiorKnots) {
-    for (let m = 0; m < mult; m++) kv.push(xi);
-  }
+  for (const {xi, mult} of iks) for (let m = 0; m < mult; m++) kv.push(xi);
   for (let i = 0; i <= p; i++) kv.push(1);
   return kv;
 }
 
-function bsplineBasis(i, p, t, kv) {
+function N(i, p, t, kv) {
   if (p === 0) {
-    const last = (i === kv.length - 2);
+    const last = i === kv.length - 2;
     return (t >= kv[i] && (last ? t <= kv[i+1] : t < kv[i+1])) ? 1 : 0;
   }
-  let left = 0, right = 0;
-  const d1 = kv[i+p] - kv[i];
-  const d2 = kv[i+p+1] - kv[i+1];
-  if (d1 > 1e-14) left = (t - kv[i]) / d1 * bsplineBasis(i, p-1, t, kv);
-  if (d2 > 1e-14) right = (kv[i+p+1] - t) / d2 * bsplineBasis(i+1, p-1, t, kv);
-  return left + right;
+  let L = 0, R = 0;
+  const d1 = kv[i+p] - kv[i], d2 = kv[i+p+1] - kv[i+1];
+  if (d1 > 1e-14) L = (t - kv[i]) / d1 * N(i, p-1, t, kv);
+  if (d2 > 1e-14) R = (kv[i+p+1] - t) / d2 * N(i+1, p-1, t, kv);
+  return L + R;
 }
 
 function getState() {
   const p = parseInt(document.getElementById('deg').value);
   const nInt = parseInt(document.getElementById('nInt').value);
-  const interiorKnots = [];
+  const iks = [];
   for (let j = 0; j < nInt; j++) {
-    const xi = (j + 1) / (nInt + 1);
-    const multEl = document.getElementById('mult_' + j);
-    const mult = multEl ? parseInt(multEl.textContent) : 1;
-    interiorKnots.push({ xi: parseFloat(xi.toFixed(4)), mult });
+    const xi = parseFloat(((j+1)/(nInt+1)).toFixed(4));
+    const el = document.getElementById('mult_'+j);
+    const mult = el ? parseInt(el.textContent) : 1;
+    iks.push({xi, mult});
   }
-  return { p, nInt, interiorKnots };
+  return {p, nInt, iks};
 }
 
-function renderMultControls() {
-  const { p, nInt, interiorKnots } = getState();
-  const container = document.getElementById('multControls');
+function renderControls() {
+  const {p, nInt, iks} = getState();
   const prev = {};
-  for (let j = 0; j < nInt; j++) {
-    const el = document.getElementById('mult_' + j);
+  for (let j = 0; j < 6; j++) {
+    const el = document.getElementById('mult_'+j);
     if (el) prev[j] = parseInt(el.textContent);
   }
+  const container = document.getElementById('multControls');
+  const section = document.getElementById('multSection');
   container.innerHTML = '';
-  if (nInt === 0) { update(); return; }
-  const lbl = document.createElement('span');
-  lbl.style.cssText = 'font-size:13px;color:var(--color-text-secondary);width:100%;flex-basis:100%;';
-  lbl.textContent = 'Interior knot multiplicities';
-  container.appendChild(lbl);
+  section.style.display = nInt === 0 ? 'none' : 'block';
   for (let j = 0; j < nInt; j++) {
-    const xi = ((j + 1) / (nInt + 1)).toFixed(2);
-    const curMult = prev[j] || 1;
+    const xi = ((j+1)/(nInt+1)).toFixed(2);
+    const cur = Math.min(prev[j] || 1, p);
     const wrap = document.createElement('div');
     wrap.className = 'knot-tag';
     wrap.innerHTML = `<span>ξ = ${xi}</span>
       <div class="mult-ctrl">
         <button id="dec_${j}">−</button>
-        <span class="mult-val" id="mult_${j}">${Math.min(curMult, p)}</span>
+        <span class="mult-val" id="mult_${j}">${cur}</span>
         <button id="inc_${j}">+</button>
       </div>
-      <span class="cont" id="cont_tag_${j}"></span>`;
+      <span class="cont-label" id="ctag_${j}"></span>`;
     container.appendChild(wrap);
-    document.getElementById('dec_' + j).onclick = () => {
-      const v = parseInt(document.getElementById('mult_' + j).textContent);
-      if (v > 1) { document.getElementById('mult_' + j).textContent = v - 1; update(); }
+    document.getElementById('dec_'+j).onclick = () => {
+      const v = parseInt(document.getElementById('mult_'+j).textContent);
+      if (v > 1) { document.getElementById('mult_'+j).textContent = v-1; update(); }
     };
-    document.getElementById('inc_' + j).onclick = () => {
-      const v = parseInt(document.getElementById('mult_' + j).textContent);
-      if (v < p) { document.getElementById('mult_' + j).textContent = v + 1; update(); }
+    document.getElementById('inc_'+j).onclick = () => {
+      const v = parseInt(document.getElementById('mult_'+j).textContent);
+      if (v < p) { document.getElementById('mult_'+j).textContent = v+1; update(); }
     };
   }
   update();
 }
 
 function update() {
-  const { p, nInt, interiorKnots } = getState();
-  const kv = buildKnotVector(p, interiorKnots);
+  const {p, nInt, iks} = getState();
+  const kv = buildKV(p, iks);
   const n = kv.length - p - 2;
 
-  document.getElementById('kvDisplay').textContent = 'Ξ = [ ' + kv.map(v => v.toFixed(v % 1 === 0 ? 0 : 3)).join('  ') + ' ]';
+  document.getElementById('kvDisplay').textContent = 'Ξ = [ ' + kv.map(v => v % 1 === 0 ? v : v.toFixed(3)).join('  ') + ' ]';
 
-  const N = 400;
-  const ts = Array.from({length: N+1}, (_, i) => i / N);
+  const M = 500;
+  const ts = Array.from({length: M+1}, (_, i) => i/M);
 
   const datasets = [];
   for (let i = 0; i <= n; i++) {
-    const vals = ts.map(t => bsplineBasis(i, p, t, kv));
     datasets.push({
       label: `N_{${i},${p}}`,
-      data: ts.map((t, idx) => ({ x: t, y: vals[idx] })),
+      data: ts.map(t => ({x: t, y: N(i, p, t, kv)})),
       borderColor: COLORS[i % COLORS.length],
       backgroundColor: 'transparent',
       borderWidth: 2,
       pointRadius: 0,
       tension: 0,
+      showLine: true,
     });
   }
 
@@ -184,79 +405,66 @@ function update() {
   datasets.forEach((d, i) => {
     const item = document.createElement('div');
     item.className = 'legend-item';
-    item.innerHTML = `<span class="legend-swatch" style="background:${COLORS[i % COLORS.length]}"></span><span>N<sub>${i},${p}</sub></span>`;
+    item.innerHTML = `<span class="legend-swatch" style="background:${COLORS[i%COLORS.length]}"></span><span>N<sub>${i},${p}</sub></span>`;
     legend.appendChild(item);
   });
 
-  const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
-  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)';
-  const tickColor = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(0,0,0,0.45)';
-
-  const knotLines = interiorKnots.map(({xi}) => ({
-    type: 'line', xMin: xi, xMax: xi, borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)',
-    borderWidth: 1, borderDash: [4, 3], label: { display: false }
+  const knotLines = iks.map(({xi}) => ({
+    type: 'line', xMin: xi, xMax: xi,
+    borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1, borderDash: [4,3]
   }));
 
   if (chart) chart.destroy();
   chart = new Chart(document.getElementById('basisChart'), {
     type: 'scatter',
-    data: { datasets },
+    data: {datasets},
     options: {
-      responsive: true, maintainAspectRatio: false,
-      animation: false,
+      responsive: true, maintainAspectRatio: false, animation: false,
       plugins: {
-        legend: { display: false },
-        annotation: { annotations: knotLines },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`
-          }
-        }
+        legend: {display: false},
+        tooltip: {callbacks: {label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`}},
       },
       scales: {
         x: {
           type: 'linear', min: 0, max: 1,
-          title: { display: true, text: 'ξ', color: tickColor, font: { size: 13 } },
-          grid: { color: gridColor },
-          ticks: { color: tickColor, font: { size: 11 }, maxTicksLimit: 11 }
+          title: {display: true, text: 'ξ', color: '#6b6b67', font: {size: 13}},
+          grid: {color: 'rgba(0,0,0,0.06)'},
+          ticks: {color: '#6b6b67', font: {size: 11}, maxTicksLimit: 11}
         },
         y: {
           min: -0.02, max: 1.05,
-          title: { display: true, text: 'N_{i,p}(ξ)', color: tickColor, font: { size: 13 } },
-          grid: { color: gridColor },
-          ticks: { color: tickColor, font: { size: 11 } }
+          title: {display: true, text: 'N_{i,p}(ξ)', color: '#6b6b67', font: {size: 13}},
+          grid: {color: 'rgba(0,0,0,0.06)'},
+          ticks: {color: '#6b6b67', font: {size: 11}}
         }
-      },
-      showLine: true,
+      }
     }
   });
 
   const tbody = document.getElementById('contBody');
   tbody.innerHTML = '';
-  if (interiorKnots.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="color:var(--color-text-secondary);padding:8px;">No interior knots</td></tr>';
-  } else {
-    for (let j = 0; j < interiorKnots.length; j++) {
-      const { xi, mult } = interiorKnots[j];
-      const cont = p - mult;
-      const xiStr = xi.toFixed(3);
-      const contStr = cont >= 0 ? `C<sup>${cont}</sup>` : 'C<sup>−1</sup> (discontinuous)';
-      const badgeCls = cont >= 0 ? 'badge-c' : 'badge-disc';
-      const badgeTxt = cont >= 0 ? `C${cont}` : 'disc.';
-      const derivStr = cont >= 0 ? (cont === 0 ? 'function value only' : `0 through ${cont - 1}${cont >= 1 ? 'st' : ''} derivative`) : 'none';
-      const derivLabel = cont < 0 ? 'none' : cont === 0 ? 'value only' : `up to ${cont === 1 ? '1st' : cont === 2 ? '2nd' : cont === 3 ? '3rd' : cont+'th'} derivative`;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>ξ = ${xiStr}</td><td>${mult}</td><td>${contStr} &nbsp;<span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${derivLabel}</td>`;
-      tbody.appendChild(tr);
-
-      const ctag = document.getElementById('cont_tag_' + j);
-      if (ctag) ctag.textContent = `C${cont >= 0 ? cont : '−1'}`;
-    }
+  if (iks.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="color:#6b6b67;padding:10px 10px;">No interior knots — basis is C<sup>∞</sup> on (0,1)</td></tr>';
+    return;
+  }
+  for (let j = 0; j < iks.length; j++) {
+    const {xi, mult} = iks[j];
+    const cont = p - mult;
+    const contStr = cont >= 0 ? `C<sup>${cont}</sup>` : 'discontinuous';
+    const badgeCls = cont >= 0 ? 'badge-c' : 'badge-disc';
+    const badgeTxt = cont >= 0 ? `C${cont}` : 'C\u207b\u00b9';
+    const derivLabel = cont < 0 ? 'none' : cont === 0 ? 'value only' : `up to ${cont === 1 ? '1st' : cont === 2 ? '2nd' : cont === 3 ? '3rd' : cont+'th'} derivative`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>ξ = ${xi.toFixed(3)}</td><td>${mult}</td><td>${contStr}<span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${derivLabel}</td>`;
+    tbody.appendChild(tr);
+    const ctag = document.getElementById('ctag_'+j);
+    if (ctag) ctag.textContent = `C${cont >= 0 ? cont : '\u207b\u00b9'}`;
   }
 }
 
-document.getElementById('deg').onchange = renderMultControls;
-document.getElementById('nInt').onchange = renderMultControls;
-
-renderMultControls();
+document.getElementById('deg').onchange = renderControls;
+document.getElementById('nInt').onchange = renderControls;
+renderControls();
 </script>
+</body>
+</html>

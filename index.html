@@ -435,7 +435,8 @@ function update() {
   }).join('  ') + ' ]';
 
   const M = 600;
-  const ts = Array.from({length: M+1}, (_, i) => i/M);
+  const tMin = kv[0], tMax = kv[kv.length-1];
+  const ts = Array.from({length: M+1}, (_, i) => tMin + (tMax - tMin) * i/M);
 
   const datasets = [];
   for (let i = 0; i <= n; i++) {

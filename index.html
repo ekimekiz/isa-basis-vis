@@ -161,11 +161,26 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
   </div>
 
   <div id="manualPanel" class="hidden">
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Enter knot vector (space or comma separated). Must be non-decreasing, start and end values repeated p+1 times for open vectors.</div>
+    <div class="row" style="margin-bottom:10px;">
+      <label>Degree p</label>
+      <select id="degManual">
+        <option value="1">p = 1</option>
+        <option value="2">p = 2</option>
+        <option value="3" selected>p = 3</option>
+        <option value="4">p = 4</option>
+        <option value="5">p = 5</option>
+      </select>
+      <div class="toggle-wrap" style="margin-left:16px;">
+        <label class="tog"><input type="checkbox" id="openToggleManual" checked><span class="tog-sl"></span></label>
+        <span class="tog-lbl">Open / clamped</span>
+      </div>
+    </div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Enter knot vector (space or comma separated, non-decreasing).</div>
     <input type="text" id="manualInput" placeholder="e.g.  0 0 0 0.5 1 1 1" />
     <div class="err" id="manualErr"></div>
   </div>
 
+  <div class="err" id="manualErr" style="margin-top:8px;"></div>
   <div class="kv-box" id="kvDisplay"></div>
 </div>
 
@@ -263,20 +278,45 @@ function buildKV_manual() {
   return parts;
 }
 
+function validateKV(kv, p) {
+  const errs = [];
+  if (!kv || kv.length < 2*(p+1)) {
+    errs.push(`Knot vector too short: need at least ${2*(p+1)} entries for p = ${p}, got ${kv ? kv.length : 0}.`);
+    return errs;
+  }
+  for (let i = 1; i < kv.length; i++)
+    if (kv[i] < kv[i-1]) { errs.push('Knot vector is not non-decreasing.'); break; }
+  const startMult = kv.filter(v => v === kv[0]).length;
+  const endMult = kv.filter(v => v === kv[kv.length-1]).length;
+  const open = mode === 'manual' ? document.getElementById('openToggleManual').checked : isOpen();
+  if (open) {
+    if (startMult !== p+1) errs.push(`Open knot vector requires start multiplicity p+1 = ${p+1}, got ${startMult}.`);
+    if (endMult !== p+1) errs.push(`Open knot vector requires end multiplicity p+1 = ${p+1}, got ${endMult}.`);
+  }
+  const iks = getInteriorKnots(kv);
+  for (const {xi, mult} of iks)
+    if (mult > p) errs.push(`Interior knot ξ = ${xi.toFixed(4)} has multiplicity ${mult} > p = ${p} (creates discontinuity).`);
+  return errs;
+}
+
 function getKV() {
-  if (mode === 'uniform') return {kv: buildKV_uniform(), err: null};
-  if (mode === 'custom') return {kv: buildKV_custom(), err: null};
+  if (mode === 'uniform') {
+    const kv = buildKV_uniform();
+    return {kv, err: validateKV(kv, getP())};
+  }
+  if (mode === 'custom') {
+    const kv = buildKV_custom();
+    return {kv, err: validateKV(kv, getP())};
+  }
   const kv = buildKV_manual();
-  if (!kv) return {kv: null, err: 'Invalid knot vector — must be non-decreasing numbers.'};
-  return {kv, err: null};
+  if (!kv) return {kv: null, err: ['Invalid knot vector — must be non-decreasing numbers.']};
+  const p = parseInt(document.getElementById('degManual').value);
+  return {kv, err: validateKV(kv, p)};
 }
 
 function inferP(kv) {
   if (mode !== 'manual') return getP();
-  const startVal = kv[0];
-  let p = 0;
-  while (p+1 < kv.length && kv[p+1] === startVal) p++;
-  return Math.max(p, 1);
+  return parseInt(document.getElementById('degManual').value);
 }
 
 function getInteriorKnots(kv) {
@@ -375,8 +415,15 @@ function renderCustomControls() {
 function update() {
   const {kv, err} = getKV();
   const errEl = document.getElementById('manualErr');
-  if (errEl) errEl.textContent = err || '';
-  if (!kv) { return; }
+  if (errEl) errEl.innerHTML = (err && err.length) ? err.map(e => `<div>${e}</div>`).join('') : '';
+  if (!kv || (err && err.length)) { 
+    if (chart) { chart.destroy(); chart = null; }
+    document.getElementById('legend').innerHTML = '';
+    document.getElementById('statsRow').innerHTML = '';
+    document.getElementById('contBody').innerHTML = '';
+    document.getElementById('kvDisplay').textContent = kv ? 'Ξ = [ ' + kv.map(v => parseFloat(v.toFixed(4))).join('  ') + ' ]' : '';
+    return;
+  }
 
   const p = inferP(kv);
   const n = kv.length - p - 2;
@@ -486,6 +533,8 @@ function update() {
 }
 
 document.getElementById('deg').onchange = () => { renderUniformControls(); renderCustomControls(); update(); };
+document.getElementById('degManual').onchange = update;
+document.getElementById('openToggleManual').onchange = update;
 document.getElementById('nInt').onchange = () => { renderUniformControls(); update(); };
 document.getElementById('openToggle').onchange = update;
 document.getElementById('manualInput').oninput = update;

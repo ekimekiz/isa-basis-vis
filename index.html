@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IGA Basis Function Visualizer</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -45,10 +46,7 @@ input[type=number] {
   border-radius: var(--radius-sm); color: var(--text);
 }
 .seg { display: inline-flex; border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); overflow: hidden; }
-.seg button {
-  border: none; background: transparent; color: var(--text-muted); font-size: 12px;
-  padding: 6px 13px; cursor: pointer; transition: background 0.1s, color 0.1s; white-space: nowrap;
-}
+.seg button { border: none; background: transparent; color: var(--text-muted); font-size: 12px; padding: 6px 13px; cursor: pointer; transition: background 0.1s, color 0.1s; white-space: nowrap; }
 .seg button.active { background: var(--accent); color: #fff; }
 .seg button:not(.active):hover { background: var(--accent-light); color: var(--accent); }
 .toggle-wrap { display: flex; align-items: center; gap: 8px; }
@@ -60,33 +58,18 @@ input[type=number] {
 .tog input:checked + .tog-sl::before { transform: translateX(16px); }
 .tog-lbl { font-size: 13px; color: var(--text-muted); }
 .knot-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
-.ktag {
-  display: inline-flex; align-items: center; gap: 7px;
-  background: var(--bg); border: 0.5px solid var(--border-mid);
-  border-radius: var(--radius-sm); padding: 5px 10px; font-size: 13px;
-}
+.ktag { display: inline-flex; align-items: center; gap: 7px; background: var(--bg); border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); padding: 5px 10px; font-size: 13px; }
 .ktag .clbl { font-size: 11px; color: var(--text-muted); min-width: 22px; }
 .mc { display: inline-flex; align-items: center; gap: 3px; }
-.mc button {
-  width: 20px; height: 20px; border: 0.5px solid var(--border-mid); border-radius: 4px;
-  background: var(--surface); color: var(--text); font-size: 14px; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; line-height: 1;
-}
+.mc button { width: 20px; height: 20px; border: 0.5px solid var(--border-mid); border-radius: 4px; background: var(--surface); color: var(--text); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; }
 .mc button:hover { background: var(--accent-light); }
 .mv { min-width: 16px; text-align: center; font-size: 13px; font-weight: 600; }
-.kv-box {
-  font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; color: var(--text-muted);
-  background: var(--bg); border-radius: var(--radius-sm); padding: 8px 12px;
-  margin-top: 10px; border: 0.5px solid var(--border); word-break: break-all;
-}
-.err { color: var(--coral); font-size: 12px; margin-top: 6px; min-height: 18px; }
+.kv-box { font-family: 'SF Mono','Fira Code',monospace; font-size: 12px; color: var(--text-muted); background: var(--bg); border-radius: var(--radius-sm); padding: 8px 12px; margin-top: 10px; border: 0.5px solid var(--border); word-break: break-all; }
+.err { color: var(--coral); font-size: 12px; margin-top: 8px; min-height: 16px; line-height: 1.6; }
 .stats-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-.stat-chip {
-  background: var(--bg); border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm);
-  padding: 5px 12px; font-size: 12px; color: var(--text-muted);
-}
+.stat-chip { background: var(--bg); border: 0.5px solid var(--border-mid); border-radius: var(--radius-sm); padding: 5px 12px; font-size: 12px; color: var(--text-muted); }
 .stat-chip strong { color: var(--text); font-weight: 600; }
-.legend-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.legend-row { display: flex; flex-wrap: wrap; gap: 10px; }
 .li { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); }
 .ls { width: 22px; height: 3px; border-radius: 2px; }
 .chart-wrap { position: relative; width: 100%; height: 300px; }
@@ -94,11 +77,11 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 thead th { text-align: left; padding: 6px 10px; color: var(--text-muted); font-weight: 500; font-size: 12px; border-bottom: 0.5px solid var(--border); }
 tbody td { padding: 7px 10px; border-bottom: 0.5px solid var(--border); color: var(--text); }
 tbody tr:last-child td { border-bottom: none; }
-.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-left: 4px; }
+.badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
 .bc { background: var(--teal-light); color: var(--teal); }
 .bd { background: var(--coral-light); color: var(--coral); }
-footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align: center; }
 .hidden { display: none !important; }
+footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align: center; }
 </style>
 </head>
 <body>
@@ -111,7 +94,6 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
 
 <div class="card">
   <div class="card-title">Knot vector</div>
-
   <div class="row">
     <label>Mode</label>
     <div class="seg" id="modeSeg">
@@ -132,7 +114,7 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
     </select>
     <div class="toggle-wrap" style="margin-left:16px;">
       <label class="tog"><input type="checkbox" id="openToggle" checked><span class="tog-sl"></span></label>
-      <span class="tog-lbl">Open / clamped knot vector</span>
+      <span class="tog-lbl">Open / clamped</span>
     </div>
   </div>
 
@@ -175,12 +157,11 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
         <span class="tog-lbl">Open / clamped</span>
       </div>
     </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Enter knot vector (space or comma separated, non-decreasing).</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Enter knot vector (space or comma separated, non-decreasing). If open/clamped is on, end multiplicities are enforced automatically.</div>
     <input type="text" id="manualInput" placeholder="e.g.  0 0 0 0.5 1 1 1" />
-    <div class="err" id="manualErr"></div>
   </div>
 
-  <div class="err" id="manualErr" style="margin-top:8px;"></div>
+  <div class="err" id="errDisplay"></div>
   <div class="kv-box" id="kvDisplay"></div>
 </div>
 
@@ -188,10 +169,10 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
   <div class="card-title">Basis functions</div>
   <div class="stats-row" id="statsRow"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-    <div class="legend-row" id="legend" style="margin-bottom:0;"></div>
+    <div class="legend-row" id="legend"></div>
     <div class="toggle-wrap">
       <label class="tog"><input type="checkbox" id="grevilleToggle" checked><span class="tog-sl"></span></label>
-      <span class="tog-lbl">Greville abscissae</span>
+      <span class="tog-lbl" style="font-size:12px;">Greville abscissae</span>
     </div>
   </div>
   <div class="chart-wrap">
@@ -208,7 +189,7 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
         <th>Multiplicity k</th>
         <th>Continuity</th>
         <th>Active basis fns</th>
-        <th>Knot span index</th>
+        <th>Knot span indices</th>
       </tr>
     </thead>
     <tbody id="contBody"></tbody>
@@ -220,10 +201,9 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
 
 <script>
 const COLORS = ['#378ADD','#1D9E75','#D85A30','#BA7517','#993356','#534AB7','#639922','#E24B4A','#0F6E56','#633806','#D4537E','#888780'];
-
 let chart = null;
 let mode = 'uniform';
-let customKnots = [{xi: 0.333, mult: 1}, {xi: 0.667, mult: 1}];
+let customKnots = [{xi:0.333,mult:1},{xi:0.667,mult:1}];
 
 function N(i, p, t, kv) {
   if (p === 0) {
@@ -238,7 +218,18 @@ function N(i, p, t, kv) {
 }
 
 function getP() { return parseInt(document.getElementById('deg').value); }
+function getPManual() { return parseInt(document.getElementById('degManual').value); }
 function isOpen() { return document.getElementById('openToggle').checked; }
+function isOpenManual() { return document.getElementById('openToggleManual').checked; }
+
+function buildFromIKS(p, open, iks) {
+  const s = open ? p+1 : 1;
+  const kv = [];
+  for (let i = 0; i < s; i++) kv.push(0);
+  for (const {xi, mult} of iks) for (let m = 0; m < mult; m++) kv.push(xi);
+  for (let i = 0; i < s; i++) kv.push(1);
+  return kv;
+}
 
 function buildKV_uniform() {
   const p = getP(), open = isOpen();
@@ -253,16 +244,6 @@ function buildKV_uniform() {
   return buildFromIKS(p, open, iks);
 }
 
-function buildFromIKS(p, open, iks) {
-  const startMult = open ? p+1 : 1;
-  const endMult = open ? p+1 : 1;
-  const kv = [];
-  for (let i = 0; i < startMult; i++) kv.push(0);
-  for (const {xi, mult} of iks) for (let m = 0; m < mult; m++) kv.push(xi);
-  for (let i = 0; i < endMult; i++) kv.push(1);
-  return kv;
-}
-
 function buildKV_custom() {
   const p = getP(), open = isOpen();
   const iks = customKnots.map((k,j) => {
@@ -271,19 +252,18 @@ function buildKV_custom() {
     const xi = xiEl ? parseFloat(xiEl.value) : k.xi;
     const mult = multEl ? Math.min(parseInt(multEl.textContent), p) : k.mult;
     return {xi: isNaN(xi) ? k.xi : xi, mult};
-  }).filter(k => k.xi > 0 && k.xi < 1)
-    .sort((a,b) => a.xi - b.xi);
+  }).filter(k => k.xi > 0 && k.xi < 1).sort((a,b) => a.xi - b.xi);
   return buildFromIKS(p, open, iks);
 }
 
 function buildKV_manual() {
-  const raw = document.getElementById('manualInput').value;
-  const parts = raw.trim().split(/[\s,]+/).map(Number);
+  const raw = document.getElementById('manualInput').value.trim();
+  if (!raw) return null;
+  const parts = raw.split(/[\s,]+/).map(Number);
   if (parts.some(isNaN) || parts.length < 2) return null;
   for (let i = 1; i < parts.length; i++) if (parts[i] < parts[i-1]) return null;
-  const p = parseInt(document.getElementById('degManual').value);
-  const open = document.getElementById('openToggleManual').checked;
-  if (!open) return parts;
+  const p = getPManual();
+  if (!isOpenManual()) return parts;
   const first = parts[0], last = parts[parts.length-1];
   const interior = parts.filter(v => v !== first && v !== last);
   const kv = [];
@@ -293,86 +273,70 @@ function buildKV_manual() {
   return kv;
 }
 
-function validateKV(kv, p) {
-  const errs = [];
-  if (!kv || kv.length < 2*(p+1)) {
-    errs.push(`Knot vector too short: need at least ${2*(p+1)} entries for p = ${p}, got ${kv ? kv.length : 0}.`);
-    return errs;
-  }
-  for (let i = 1; i < kv.length; i++)
-    if (kv[i] < kv[i-1]) { errs.push('Knot vector is not non-decreasing.'); break; }
-  const startMult = kv.filter(v => v === kv[0]).length;
-  const endMult = kv.filter(v => v === kv[kv.length-1]).length;
-  const open = mode === 'manual' ? document.getElementById('openToggleManual').checked : isOpen();
-  if (open) {
-    if (startMult !== p+1) errs.push(`Open knot vector requires start multiplicity p+1 = ${p+1}, got ${startMult}.`);
-    if (endMult !== p+1) errs.push(`Open knot vector requires end multiplicity p+1 = ${p+1}, got ${endMult}.`);
-  }
-  const iks = getInteriorKnots(kv);
-  for (const {xi, mult} of iks)
-    if (mult > p) errs.push(`Interior knot ξ = ${xi.toFixed(4)} has multiplicity ${mult} > p = ${p} (creates discontinuity).`);
-  return errs;
-}
-
-function getKV() {
-  if (mode === 'uniform') {
-    const kv = buildKV_uniform();
-    return {kv, err: validateKV(kv, getP())};
-  }
-  if (mode === 'custom') {
-    const kv = buildKV_custom();
-    return {kv, err: validateKV(kv, getP())};
-  }
-  const kv = buildKV_manual();
-  if (!kv) return {kv: null, err: ['Invalid knot vector — must be non-decreasing numbers.']};
-  const p = parseInt(document.getElementById('degManual').value);
-  return {kv, err: validateKV(kv, p)};
-}
-
-function inferP(kv) {
-  if (mode !== 'manual') return getP();
-  return parseInt(document.getElementById('degManual').value);
-}
-
 function getInteriorKnots(kv) {
   const first = kv[0], last = kv[kv.length-1];
   const seen = new Map();
   for (const v of kv) {
     if (v === first || v === last) continue;
-    seen.set(v, (seen.get(v) || 0) + 1);
+    seen.set(v, (seen.get(v)||0) + 1);
   }
-  return Array.from(seen.entries()).map(([xi, mult]) => ({xi, mult})).sort((a,b)=>a.xi-b.xi);
+  return Array.from(seen.entries()).map(([xi,mult]) => ({xi,mult})).sort((a,b) => a.xi-b.xi);
+}
+
+function validateKV(kv, p) {
+  if (!kv) return ['Could not parse knot vector.'];
+  const errs = [];
+  if (kv.length < 2*(p+1)) {
+    errs.push(`Knot vector too short: need at least ${2*(p+1)} entries for p = ${p}, got ${kv.length}.`);
+    return errs;
+  }
+  for (let i = 1; i < kv.length; i++)
+    if (kv[i] < kv[i-1]) { errs.push('Knot vector is not non-decreasing.'); break; }
+  const open = mode === 'manual' ? isOpenManual() : isOpen();
+  if (open) {
+    const startMult = kv.filter(v => v === kv[0]).length;
+    const endMult = kv.filter(v => v === kv[kv.length-1]).length;
+    if (startMult !== p+1) errs.push(`Open vector requires start multiplicity p+1 = ${p+1}, got ${startMult}.`);
+    if (endMult !== p+1) errs.push(`Open vector requires end multiplicity p+1 = ${p+1}, got ${endMult}.`);
+  }
+  for (const {xi, mult} of getInteriorKnots(kv))
+    if (mult > p) errs.push(`Interior knot ξ = ${xi.toFixed(4)} has multiplicity ${mult} > p = ${p}.`);
+  return errs;
+}
+
+function getKV() {
+  if (mode === 'uniform') { const kv = buildKV_uniform(); return {kv, p: getP(), errs: validateKV(kv, getP())}; }
+  if (mode === 'custom')  { const kv = buildKV_custom();  return {kv, p: getP(), errs: validateKV(kv, getP())}; }
+  const kv = buildKV_manual();
+  const p = getPManual();
+  if (!kv) return {kv: null, p, errs: ['Could not parse knot vector — check input.']};
+  return {kv, p, errs: validateKV(kv, p)};
 }
 
 function spanIndices(xi, kv) {
-  const all = [];
+  const all = [], eps = 1e-10;
   let active = -1;
   for (let i = 0; i < kv.length; i++) {
-    if (Math.abs(kv[i] - xi) < 1e-10) {
+    if (Math.abs(kv[i] - xi) < eps) {
       all.push(i);
-      if (i < kv.length-1 && kv[i+1] > xi) active = i;
+      if (i < kv.length-1 && kv[i+1] > xi + eps) active = i;
     }
   }
   return {all, active};
 }
 
-function activeBasisCount(p) { return p + 1; }
-
 function renderUniformControls() {
   const p = getP();
   const nInt = parseInt(document.getElementById('nInt').value);
   const prev = {};
-  for (let j = 0; j < 6; j++) {
-    const el = document.getElementById('um_'+j);
-    if (el) prev[j] = parseInt(el.textContent);
-  }
+  for (let j = 0; j < 6; j++) { const el = document.getElementById('um_'+j); if (el) prev[j] = parseInt(el.textContent); }
   const container = document.getElementById('uMultControls');
   const section = document.getElementById('uMultSection');
   container.innerHTML = '';
   section.style.display = nInt === 0 ? 'none' : 'block';
   for (let j = 0; j < nInt; j++) {
     const xi = ((j+1)/(nInt+1)).toFixed(3);
-    const cur = Math.min(prev[j] || 1, p);
+    const cur = Math.min(prev[j]||1, p);
     const wrap = document.createElement('div');
     wrap.className = 'ktag';
     wrap.innerHTML = `<span>ξ = ${xi}</span>
@@ -383,14 +347,8 @@ function renderUniformControls() {
       </div>
       <span class="clbl" id="uctag_${j}"></span>`;
     container.appendChild(wrap);
-    document.getElementById('udec_'+j).onclick = () => {
-      const v = parseInt(document.getElementById('um_'+j).textContent);
-      if (v > 1) { document.getElementById('um_'+j).textContent = v-1; update(); }
-    };
-    document.getElementById('uinc_'+j).onclick = () => {
-      const v = parseInt(document.getElementById('um_'+j).textContent);
-      if (v < getP()) { document.getElementById('um_'+j).textContent = v+1; update(); }
-    };
+    document.getElementById('udec_'+j).onclick = () => { const v = parseInt(document.getElementById('um_'+j).textContent); if (v > 1) { document.getElementById('um_'+j).textContent = v-1; update(); } };
+    document.getElementById('uinc_'+j).onclick = () => { const v = parseInt(document.getElementById('um_'+j).textContent); if (v < getP()) { document.getElementById('um_'+j).textContent = v+1; update(); } };
   }
 }
 
@@ -399,9 +357,9 @@ function renderCustomControls() {
   const container = document.getElementById('cKnotRows');
   container.innerHTML = '';
   customKnots.forEach((k, j) => {
+    const cur = Math.min(k.mult, p);
     const wrap = document.createElement('div');
     wrap.className = 'ktag';
-    const cur = Math.min(k.mult, p);
     wrap.innerHTML = `<span style="font-size:12px;color:var(--text-muted);">ξ =</span>
       <input type="number" id="cxi_${j}" value="${k.xi.toFixed(4)}" min="0.0001" max="0.9999" step="0.0001" style="width:72px;">
       <span style="font-size:12px;color:var(--text-muted);">mult</span>
@@ -410,113 +368,83 @@ function renderCustomControls() {
         <span class="mv" id="cm_${j}">${cur}</span>
         <button id="cinc_${j}">+</button>
       </div>
-      <button id="crm_${j}" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;padding:0 2px;" title="remove">×</button>`;
+      <button id="crm_${j}" style="border:none;background:transparent;color:var(--text-muted);cursor:pointer;font-size:15px;padding:0 2px;">×</button>`;
     container.appendChild(wrap);
-    document.getElementById('cxi_'+j).onchange = () => {
-      customKnots[j].xi = parseFloat(document.getElementById('cxi_'+j).value) || k.xi;
-      update();
-    };
-    document.getElementById('cdec_'+j).onclick = () => {
-      const v = parseInt(document.getElementById('cm_'+j).textContent);
-      if (v > 1) { customKnots[j].mult = v-1; document.getElementById('cm_'+j).textContent = v-1; update(); }
-    };
-    document.getElementById('cinc_'+j).onclick = () => {
-      const v = parseInt(document.getElementById('cm_'+j).textContent);
-      if (v < getP()) { customKnots[j].mult = v+1; document.getElementById('cm_'+j).textContent = v+1; update(); }
-    };
-    document.getElementById('crm_'+j).onclick = () => {
-      customKnots.splice(j, 1);
-      renderCustomControls();
-      update();
-    };
+    document.getElementById('cxi_'+j).onchange = () => { customKnots[j].xi = parseFloat(document.getElementById('cxi_'+j).value)||k.xi; update(); };
+    document.getElementById('cdec_'+j).onclick = () => { const v = parseInt(document.getElementById('cm_'+j).textContent); if (v > 1) { customKnots[j].mult = v-1; document.getElementById('cm_'+j).textContent = v-1; update(); } };
+    document.getElementById('cinc_'+j).onclick = () => { const v = parseInt(document.getElementById('cm_'+j).textContent); if (v < getP()) { customKnots[j].mult = v+1; document.getElementById('cm_'+j).textContent = v+1; update(); } };
+    document.getElementById('crm_'+j).onclick = () => { customKnots.splice(j,1); renderCustomControls(); update(); };
   });
 }
 
 function update() {
-  const {kv, err} = getKV();
-  const errEl = document.getElementById('manualErr');
-  if (errEl) errEl.innerHTML = (err && err.length) ? err.map(e => `<div>${e}</div>`).join('') : '';
-  if (!kv || (err && err.length)) { 
+  const {kv, p, errs} = getKV();
+
+  const errEl = document.getElementById('errDisplay');
+  errEl.innerHTML = errs.length ? errs.map(e => `<div>${e}</div>`).join('') : '';
+
+  const kvEl = document.getElementById('kvDisplay');
+  kvEl.textContent = kv ? 'Ξ = [ ' + kv.map(v => parseFloat(v.toFixed(6)).toString()).join('  ') + ' ]' : '';
+
+  if (errs.length) {
     if (chart) { chart.destroy(); chart = null; }
     document.getElementById('legend').innerHTML = '';
     document.getElementById('statsRow').innerHTML = '';
     document.getElementById('contBody').innerHTML = '';
-    document.getElementById('kvDisplay').textContent = kv ? 'Ξ = [ ' + kv.map(v => parseFloat(v.toFixed(4))).join('  ') + ' ]' : '';
     return;
   }
 
-  const p = inferP(kv);
   const n = kv.length - p - 2;
   if (n < 0) return;
 
-  document.getElementById('kvDisplay').textContent = 'Ξ = [ ' + kv.map(v => {
-    const s = parseFloat(v.toFixed(4)).toString();
-    return s;
-  }).join('  ') + ' ]';
+  const statsRow = document.getElementById('statsRow');
+  statsRow.innerHTML = '';
+  [{label:'Degree', val:`p = ${p}`},{label:'Basis functions', val:`n+1 = ${n+1}`},{label:'Knot vector length', val:`m+1 = ${kv.length}`},{label:'Knot spans', val:`${kv.filter((v,i,a) => i < a.length-1 && a[i+1] > v).length}`}]
+    .forEach(c => { const el = document.createElement('div'); el.className = 'stat-chip'; el.innerHTML = `${c.label}: <strong>${c.val}</strong>`; statsRow.appendChild(el); });
 
-  const M = 600;
   const tMin = kv[0], tMax = kv[kv.length-1];
-  const ts = Array.from({length: M+1}, (_, i) => tMin + (tMax - tMin) * i/M);
+  const M = 600;
+  const ts = Array.from({length:M+1}, (_,i) => tMin + (tMax-tMin)*i/M);
 
   const datasets = [];
   for (let i = 0; i <= n; i++) {
     datasets.push({
       label: `N_{${i+1},${p}}`,
-      data: ts.map(t => ({x: t, y: N(i, p, t, kv)})),
-      borderColor: COLORS[i % COLORS.length],
+      data: ts.map(t => ({x:t, y:N(i,p,t,kv)})),
+      borderColor: COLORS[i%COLORS.length],
       backgroundColor: 'transparent',
-      borderWidth: 2,
-      pointRadius: 0,
-      tension: 0,
-      showLine: true,
+      borderWidth: 2, pointRadius: 0, tension: 0, showLine: true,
     });
   }
 
-  const iks = getInteriorKnots(kv);
-
-  const statsRow = document.getElementById('statsRow');
-  statsRow.innerHTML = '';
-  const chips = [
-    {label: 'Degree', val: `p = ${p}`},
-    {label: 'Basis functions', val: `n+1 = ${n+1}`},
-    {label: 'Knot vector length', val: `m+1 = ${kv.length}`},
-    {label: 'Knot spans', val: `${kv.length - 1 - 2*p}`},
-  ];
-  chips.forEach(c => {
-    const el = document.createElement('div');
-    el.className = 'stat-chip';
-    el.innerHTML = `${c.label}: <strong>${c.val}</strong>`;
-    statsRow.appendChild(el);
-  });
-
   const legend = document.getElementById('legend');
   legend.innerHTML = '';
-  datasets.forEach((d, i) => {
+  datasets.forEach((d,i) => {
     const item = document.createElement('div');
     item.className = 'li';
     item.innerHTML = `<span class="ls" style="background:${COLORS[i%COLORS.length]}"></span><span>N<sub>${i+1},${p}</sub></span>`;
     legend.appendChild(item);
   });
 
+  const iks = getInteriorKnots(kv);
   const showGreville = document.getElementById('grevilleToggle').checked;
-  const greville = [];
-  for (let i = 0; i <= n; i++) {
-    let tau = 0;
-    for (let j = 1; j <= p; j++) tau += kv[i+j];
-    greville.push(parseFloat((tau/p).toFixed(6)));
+
+  const annotations = {};
+  iks.forEach(({xi}, idx) => {
+    annotations['kl'+idx] = {type:'line', xMin:xi, xMax:xi, borderColor:'rgba(0,0,0,0.15)', borderWidth:1, borderDash:[4,3]};
+  });
+  if (showGreville) {
+    for (let i = 0; i <= n; i++) {
+      let tau = 0;
+      for (let j = 1; j <= p; j++) tau += kv[i+j];
+      tau /= p;
+      annotations['gr'+i] = {
+        type: 'point', xValue: tau, yValue: 0,
+        backgroundColor: COLORS[i%COLORS.length],
+        borderColor: '#fff', borderWidth: 1.5, radius: 5,
+      };
+    }
   }
-
-  const grevillePoints = showGreville ? greville.map((tau, i) => ({
-    type: 'point', xValue: tau, yValue: 0,
-    backgroundColor: COLORS[i % COLORS.length],
-    borderColor: '#fff', borderWidth: 1.5,
-    radius: 5,
-  })) : [];
-
-  const knotLines = iks.map(({xi}) => ({
-    type: 'line', xMin: xi, xMax: xi,
-    borderColor: 'rgba(0,0,0,0.15)', borderWidth: 1, borderDash: [4,3]
-  }));
 
   if (chart) chart.destroy();
   chart = new Chart(document.getElementById('basisChart'), {
@@ -527,20 +455,11 @@ function update() {
       plugins: {
         legend: {display: false},
         tooltip: {callbacks: {label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(4)}`}},
+        annotation: {annotations},
       },
       scales: {
-        x: {
-          type: 'linear', min: kv[0], max: kv[kv.length-1],
-          title: {display: true, text: 'ξ', color: '#6b6b67', font: {size: 13}},
-          grid: {color: 'rgba(0,0,0,0.06)'},
-          ticks: {color: '#6b6b67', font: {size: 11}, maxTicksLimit: 11}
-        },
-        y: {
-          min: -0.02, max: 1.05,
-          title: {display: true, text: 'N_{i,p}(ξ)', color: '#6b6b67', font: {size: 13}},
-          grid: {color: 'rgba(0,0,0,0.06)'},
-          ticks: {color: '#6b6b67', font: {size: 11}}
-        }
+        x: { type:'linear', min:tMin, max:tMax, title:{display:true, text:'ξ', color:'#6b6b67', font:{size:13}}, grid:{color:'rgba(0,0,0,0.06)'}, ticks:{color:'#6b6b67', font:{size:11}, maxTicksLimit:11} },
+        y: { min:-0.06, max:1.05, title:{display:true, text:'N_{i,p}(ξ)', color:'#6b6b67', font:{size:13}}, grid:{color:'rgba(0,0,0,0.06)'}, ticks:{color:'#6b6b67', font:{size:11}} }
       }
     }
   });
@@ -553,38 +472,17 @@ function update() {
   }
   iks.forEach(({xi, mult}, idx) => {
     const cont = p - mult;
-    const contStr = cont >= 0 ? `C<sup>${cont}</sup>` : 'discontinuous';
     const badgeCls = cont >= 0 ? 'bc' : 'bd';
     const badgeTxt = cont >= 0 ? `C${cont}` : 'C\u207b\u00b9';
     const {all, active} = spanIndices(xi, kv);
-    const spanStr = all.map(idx => idx === active
-      ? `<strong>${idx}</strong>`
-      : `<span style="color:var(--text-muted)">${idx}</span>`
-    ).join(', ');
-    const active = activeBasisCount(p);
+    const spanStr = all.map(i => i === active ? `<strong>${i}</strong>` : `<span style="color:var(--text-muted)">${i}</span>`).join(', ');
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>ξ = ${xi.toFixed(4)}</td><td>${mult}</td><td><span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${active}</td><td>${spanStr}</td>`;
+    tr.innerHTML = `<td>ξ = ${xi.toFixed(4)}</td><td>${mult}</td><td><span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${p+1}</td><td>${spanStr}</td>`;
     tbody.appendChild(tr);
-    if (mode === 'uniform') {
-      const ctag = document.getElementById('uctag_'+idx);
-      if (ctag) ctag.textContent = `C${cont >= 0 ? cont : '\u207b\u00b9'}`;
-    }
+    const ctag = document.getElementById('uctag_'+idx);
+    if (ctag) ctag.textContent = badgeTxt;
   });
 }
-
-document.getElementById('deg').onchange = () => { renderUniformControls(); renderCustomControls(); update(); };
-document.getElementById('grevilleToggle').onchange = update;
-document.getElementById('openToggleManual').onchange = update;
-document.getElementById('nInt').onchange = () => { renderUniformControls(); update(); };
-document.getElementById('openToggle').onchange = update;
-document.getElementById('manualInput').oninput = update;
-document.getElementById('addKnotBtn').onclick = () => {
-  const last = customKnots.length ? customKnots[customKnots.length-1].xi : 0;
-  const next = parseFloat(Math.min(last + 0.2, 0.9).toFixed(3));
-  customKnots.push({xi: next, mult: 1});
-  renderCustomControls();
-  update();
-};
 
 document.getElementById('modeSeg').querySelectorAll('button').forEach(btn => {
   btn.onclick = () => {
@@ -599,6 +497,19 @@ document.getElementById('modeSeg').querySelectorAll('button').forEach(btn => {
     update();
   };
 });
+
+document.getElementById('deg').onchange = () => { renderUniformControls(); renderCustomControls(); update(); };
+document.getElementById('degManual').onchange = update;
+document.getElementById('openToggle').onchange = update;
+document.getElementById('openToggleManual').onchange = update;
+document.getElementById('nInt').onchange = () => { renderUniformControls(); update(); };
+document.getElementById('manualInput').oninput = update;
+document.getElementById('grevilleToggle').onchange = update;
+document.getElementById('addKnotBtn').onclick = () => {
+  const last = customKnots.length ? customKnots[customKnots.length-1].xi : 0;
+  customKnots.push({xi: parseFloat(Math.min(last+0.2, 0.9).toFixed(3)), mult:1});
+  renderCustomControls(); update();
+};
 
 renderUniformControls();
 renderCustomControls();

@@ -403,7 +403,10 @@ function update() {
 
   const tMin = kv[0], tMax = kv[kv.length-1];
   const M = 600;
-  const ts = Array.from({length:M+1}, (_,i) => tMin + (tMax-tMin)*i/M);
+  const ts = Array.from({length:M+1}, (_,i) => {
+    const t = tMin + (tMax - tMin) * i / M;
+    return Math.min(t, tMax);
+  });
 
   const datasets = [];
   for (let i = 0; i <= n; i++) {
@@ -430,8 +433,8 @@ function update() {
   const annotations   = {};
 
   if (showKnotLines) {
-    const uniqueInner = [...new Set(kv)].sort((a,b)=>a-b).filter(v => v > kv[0] && v < kv[kv.length-1]);
-    uniqueInner.forEach((xi, idx) => {
+    const uniqueAll = [...new Set(kv)].sort((a,b) => a-b);
+    uniqueAll.forEach((xi, idx) => {
       annotations['kl'+idx] = {
         type: 'line', xMin: xi, xMax: xi,
         borderColor: 'rgba(0,0,0,0.35)', borderWidth: 1.5, borderDash: [5,3],
@@ -490,7 +493,7 @@ function update() {
     const spanStr = all.map(i => i === active ? `<strong>${i}</strong>` : `<span style="color:var(--text-muted)">${i}</span>`).join(', ');
     const activeFns = activeBasisAtKnot(xi, p, kv);
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>ξ = ${parseFloat(xi.toFixed(6))}</td><td>${mult}</td><td>${contLabel}${!isEndpoint ? `&nbsp;<span class="badge ${badgeCls}">${badgeTxt}</span>` : ''}</td><td>${activeFns.length} (${activeFns.map(i => `N<sub>${i},${p}</sub>`).join(', ')})</td><td>${spanStr}</td>`;
+    tr.innerHTML = `<td>ξ = ${parseFloat(xi.toFixed(6))}</td><td>${mult}</td><td>${contLabel}</td><td>${activeFns.length} (${activeFns.map(i => `N<sub>${i},${p}</sub>`).join(', ')})</td><td>${spanStr}</td>`;
     tbody.appendChild(tr);
   });
 

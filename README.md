@@ -8,13 +8,11 @@ An interactive browser-based tool for visualizing B-spline basis functions, buil
 
 ## Features
 
-- Three knot vector input modes: uniform, custom, and full manual
+- Two knot vector input modes: uniform and manual
 - Degree selector (p = 1–5) with open/clamped toggle
 - Adjustable interior knot multiplicities with live continuity feedback
 - Basis function plot with Greville abscissae and knot line overlays
-- Continuity table with active basis function counts and knot span indices
-- Reference panel showing m+1 = n+p+1 with current values
-- PNG export
+- PNG and CSV export
 
 ## Implementation
 

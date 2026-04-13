@@ -165,14 +165,30 @@ footer { margin-top: 2rem; font-size: 12px; color: var(--text-muted); text-align
   <div class="kv-box" id="kvDisplay"></div>
 </div>
 
+<div class="card" id="refPanel">
+  <div class="card-title">B-spline relation</div>
+  <div id="refContent" style="font-size:13px;line-height:1.9;color:var(--text);">
+    <div style="font-family:'SF Mono','Fira Code',monospace;font-size:13px;margin-bottom:8px;">m + 1 = n + p + 1</div>
+    <div id="refValues" style="color:var(--text-muted);font-size:12px;"></div>
+  </div>
+</div>
+
 <div class="card">
   <div class="card-title">Basis functions</div>
   <div class="stats-row" id="statsRow"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
     <div class="legend-row" id="legend"></div>
-    <div class="toggle-wrap">
-      <label class="tog"><input type="checkbox" id="grevilleToggle" checked><span class="tog-sl"></span></label>
-      <span class="tog-lbl" style="font-size:12px;">Greville abscissae</span>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div class="toggle-wrap">
+        <label class="tog"><input type="checkbox" id="grevilleToggle" checked><span class="tog-sl"></span></label>
+        <span class="tog-lbl" style="font-size:12px;">Greville abscissae</span>
+      </div>
+      <div class="toggle-wrap">
+        <label class="tog"><input type="checkbox" id="knotLineToggle" checked><span class="tog-sl"></span></label>
+        <span class="tog-lbl" style="font-size:12px;">Knot lines</span>
+      </div>
+      <button id="exportPng" style="font-size:12px;padding:5px 12px;border:0.5px solid var(--border-mid);border-radius:var(--radius-sm);background:var(--bg);color:var(--accent);cursor:pointer;">Export PNG</button>
+      <button id="exportCsv" style="font-size:12px;padding:5px 12px;border:0.5px solid var(--border-mid);border-radius:var(--radius-sm);background:var(--bg);color:var(--accent);cursor:pointer;">Export CSV</button>
     </div>
   </div>
   <div class="chart-wrap">
@@ -287,7 +303,7 @@ function validateKV(kv, p) {
   if (!kv) return ['Could not parse knot vector.'];
   const errs = [];
   if (kv.length < 2*(p+1)) {
-    errs.push(`Knot vector too short: need at least ${2*(p+1)} entries for p = ${p}, got ${kv.length}.`);
+    errs.push(`Knot vector too short: m+1 = n+p+1 requires at least ${2*(p+1)} entries for p = ${p} (minimum n+1 = ${p+1} basis functions), got ${kv.length}.`);
     return errs;
   }
   for (let i = 1; i < kv.length; i++)
@@ -386,6 +402,20 @@ function update() {
   const kvEl = document.getElementById('kvDisplay');
   kvEl.textContent = kv ? 'Ξ = [ ' + kv.map(v => parseFloat(v.toFixed(6)).toString()).join('  ') + ' ]' : '';
 
+  // update reference panel
+  const refValues = document.getElementById('refValues');
+  if (kv) {
+    const m = kv.length - 1;
+    const nBasis = kv.length - p - 1;
+    refValues.innerHTML =
+      `<span style="color:var(--text);">p</span> = degree = <strong>${p}</strong><br>` +
+      `<span style="color:var(--text);">m+1</span> = knot vector length = <strong>${m+1}</strong><br>` +
+      `<span style="color:var(--text);">n+1</span> = number of basis functions = m+1 &minus; p = <strong>${Math.max(nBasis,0)}</strong><br>` +
+      `Check: ${m+1} = ${Math.max(nBasis,0)} + ${p} + 1 = <strong>${Math.max(nBasis,0) + p + 1}</strong> ${Math.max(nBasis,0) + p + 1 === m+1 ? '&#10003;' : '&#10007;'}`;
+  } else {
+    refValues.textContent = 'Enter a valid knot vector to see values.';
+  }
+
   if (errs.length) {
     if (chart) { chart.destroy(); chart = null; }
     document.getElementById('legend').innerHTML = '';
@@ -429,9 +459,17 @@ function update() {
   const iks = getInteriorKnots(kv);
   const showGreville = document.getElementById('grevilleToggle').checked;
 
+  const showKnotLines = document.getElementById('knotLineToggle').checked;
   const annotations = {};
   iks.forEach(({xi}, idx) => {
-    annotations['kl'+idx] = {type:'line', xMin:xi, xMax:xi, borderColor:'rgba(0,0,0,0.15)', borderWidth:1, borderDash:[4,3]};
+    if (showKnotLines) {
+      annotations['kl'+idx] = {
+        type:'line', xMin:xi, xMax:xi,
+        borderColor: COLORS[idx % COLORS.length],
+        borderWidth: 2,
+        borderDash: [6, 3],
+      };
+    }
   });
   if (showGreville) {
     for (let i = 0; i <= n; i++) {
@@ -476,8 +514,12 @@ function update() {
     const badgeTxt = cont >= 0 ? `C${cont}` : 'C\u207b\u00b9';
     const {all, active} = spanIndices(xi, kv);
     const spanStr = all.map(i => i === active ? `<strong>${i}</strong>` : `<span style="color:var(--text-muted)">${i}</span>`).join(', ');
+    const activeFns = Array.from({length:n+1}, (_,i) => i).filter(i => {
+      const val = N(i, p, xi, kv);
+      return Math.abs(val) > 1e-10;
+    }).map(i => i+1);
     const tr = document.createElement('tr');
-    tr.innerHTML = `<td>ξ = ${xi.toFixed(4)}</td><td>${mult}</td><td><span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${p+1}</td><td>${spanStr}</td>`;
+    tr.innerHTML = `<td>ξ = ${xi.toFixed(4)}</td><td>${mult}</td><td><span class="badge ${badgeCls}">${badgeTxt}</span></td><td>${activeFns.length} (${activeFns.map(i => `N<sub>${i},${p}</sub>`).join(', ')})</td><td>${spanStr}</td>`;
     tbody.appendChild(tr);
     const ctag = document.getElementById('uctag_'+idx);
     if (ctag) ctag.textContent = badgeTxt;
@@ -505,6 +547,34 @@ document.getElementById('openToggleManual').onchange = update;
 document.getElementById('nInt').onchange = () => { renderUniformControls(); update(); };
 document.getElementById('manualInput').oninput = update;
 document.getElementById('grevilleToggle').onchange = update;
+document.getElementById('knotLineToggle').onchange = update;
+
+document.getElementById('exportPng').onclick = () => {
+  const canvas = document.getElementById('basisChart');
+  const link = document.createElement('a');
+  link.download = 'basis_functions.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+};
+
+document.getElementById('exportCsv').onclick = () => {
+  const {kv, p, errs} = getKV();
+  if (errs.length || !kv) return;
+  const n = kv.length - p - 2;
+  const tMin = kv[0], tMax = kv[kv.length-1];
+  const M = 500;
+  const ts = Array.from({length:M+1}, (_,i) => tMin + (tMax-tMin)*i/M);
+  const header = ['xi', ...Array.from({length:n+1}, (_,i) => `N_${i+1}_${p}`)].join(',');
+  const rows = ts.map(t => {
+    const vals = Array.from({length:n+1}, (_,i) => N(i, p, t, kv).toFixed(8));
+    return [t.toFixed(6), ...vals].join(',');
+  });
+  const blob = new Blob([[header, ...rows].join('\n')], {type:'text/csv'});
+  const link = document.createElement('a');
+  link.download = 'basis_functions.csv';
+  link.href = URL.createObjectURL(blob);
+  link.click();
+};
 document.getElementById('addKnotBtn').onclick = () => {
   const last = customKnots.length ? customKnots[customKnots.length-1].xi : 0;
   customKnots.push({xi: parseFloat(Math.min(last+0.2, 0.9).toFixed(3)), mult:1});

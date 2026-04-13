@@ -246,7 +246,13 @@ function activeBasisAtKnot(xi, p, kv) {
   return active;
 }
 
-function getP() { return parseInt(document.getElementById('deg').value); }
+function evalBasis(i, p, t, kv) {
+  const tMax = kv[kv.length-1];
+  // for the last basis function at the right endpoint, clamp to avoid the vertical drop
+  if (Math.abs(t - tMax) < 1e-10 && i === kv.length - p - 2) return N(i, p, tMax, kv);
+  if (t >= tMax) return 0;
+  return N(i, p, t, kv);
+} return parseInt(document.getElementById('deg').value); }
 function getPManual() { return parseInt(document.getElementById('degManual').value); }
 function isOpen() { return document.getElementById('openToggle').checked; }
 function isOpenManual() { return document.getElementById('openToggleManual').checked; }
@@ -412,7 +418,7 @@ function update() {
   for (let i = 0; i <= n; i++) {
     datasets.push({
       label: `N_{${i+1},${p}}`,
-      data: ts.map(t => ({x:t, y:N(i,p,t,kv)})),
+      data: ts.map(t => ({x:t, y:evalBasis(i,p,t,kv)})),
       borderColor: COLORS[i%COLORS.length],
       backgroundColor: 'transparent',
       borderWidth: 2, pointRadius: 0, tension: 0, showLine: true,
@@ -490,7 +496,7 @@ function update() {
     }
     const badgeTxt = cont >= 0 ? `C${cont}` : 'C\u207b\u00b9';
     const {all, active} = spanIndices(xi, kv);
-    const spanStr = all.map(i => i === active ? `<strong>${i}</strong>` : `<span style="color:var(--text-muted)">${i}</span>`).join(', ');
+    const spanStr = all.map(i => `${i}`).join(', ');
     const activeFns = activeBasisAtKnot(xi, p, kv);
     const tr = document.createElement('tr');
     tr.innerHTML = `<td>ξ = ${parseFloat(xi.toFixed(6))}</td><td>${mult}</td><td>${contLabel}</td><td>${activeFns.length} (${activeFns.map(i => `N<sub>${i},${p}</sub>`).join(', ')})</td><td>${spanStr}</td>`;
